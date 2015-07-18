@@ -1,5 +1,6 @@
 import utils.draw as draw
 import logging
+import networkx as nx
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,11 @@ def default_check(graph):
     if len(graph) < 1:
         logger.debug('ERROR: empty graph')
         return False
+
+
+    if isinstance(graph,nx.DiGraph):
+        return True
+
     # check if all the "edge nodes" have a start and end vertex..
     # if you think edge-node is a oxymoron see "transform edge to vertex" in eden
     for node_id in graph.nodes_iter():
@@ -21,6 +27,7 @@ def default_check(graph):
             if len(graph.neighbors(node_id)) != 2:
                 logger.debug('ERROR: feasibility edge check failed, (interface twist phenomenon probably)')
                 return False
+
     return True
 
 
@@ -37,7 +44,8 @@ class FeasibilityChecker():
             # if it fails:
             if f(graph) is False:
                 # we may draw the graph
-                if self.draw_problem:
+                if self.draw_problem and len(graph) > 0:
+
                     draw.display(graph)
                 # and claim unfeasible
                 return False
