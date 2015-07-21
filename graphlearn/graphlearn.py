@@ -1,4 +1,3 @@
-import networkx as nx
 import itertools
 import random
 import postprocessing
@@ -14,7 +13,6 @@ from eden.graph import Vectorizer
 from eden.util import serialize_dict
 import logging
 
-import utils.draw as draw
 logger = logging.getLogger(__name__)
 
 
@@ -104,6 +102,9 @@ class GraphLearnSampler(object):
         # self.__dict__ = joblib.load(file_name)
         self.__dict__ = dill.load(open(file_name))
         logger.debug('Loaded model: %s' % file_name)
+
+    def get_grammar(self):
+        return self.lsgg.grammar
 
     def fit(self, graphs,
             min_cip_count=2,
@@ -240,7 +241,7 @@ class GraphLearnSampler(object):
             logger.debug(exc)
             logger.debug(traceback.format_exc(10))
             self._sample_notes += "\n" + str(exc)
-            self._sample_notes += '\nstoped at step %d' % self.step
+            self._sample_notes += '\nstopped at step %d' % self.step
 
         self._score_list += [self._score_list[-1]] * (self.n_steps + 1 - len(self._score_list))
         # we put the result in the sample_path
@@ -261,7 +262,6 @@ class GraphLearnSampler(object):
 
     def _sample_path_append(self, graph):
         # conditions meet?
-        #
         if self.step == 0 or (self.step % self.sampling_interval == 0 and self.step > self.burnout):
 
             # do we want to omit duplicates?
@@ -376,7 +376,7 @@ class GraphLearnSampler(object):
 
     def _propose_graph(self, graph):
         """
-        we choose ONE core in the graph and return a valid grpah with a changed core
+        we choose ONE core in the graph and return a valid graph with a changed core
 
         note that when we chose the core, we made sure that there would be possible replacements..
         """
@@ -394,16 +394,18 @@ class GraphLearnSampler(object):
                 return self.postprocessor.postprocess(graph_new)
             else:
                 logger.debug('feasibility checker failed')
-
-        print 'printing le errer'
-        draw.display(original_cip.graph)
-        ih=original_cip.interface_hash
-        ch = self.lsgg.grammar[ih].keys()
-        #print 'grammar'
-        #draw.draw_graph_set_graphlearn( [  self.lsgg.grammar[ih][c].graph for c in ch  ] ,contract=False )
-        print 'candidates'
-        draw.draw_graph_set_graphlearn( [cip.graph for cip in  self._select_cips(original_cip) ] ,contract=False)
-
+        # DEBUG ONLY
+        if True:
+            import utils.draw as draw
+            print 'printing le errer'
+            draw.display(original_cip.graph)
+            ih = original_cip.interface_hash
+            ch = self.lsgg.grammar[ih].keys()
+            print 'grammar'
+            draw.draw_graph_set_graphlearn([self.lsgg.grammar[ih][c].graph for c in ch], contract=False)
+            print 'candidates'
+            candidates = [cip.graph for cip in self._select_cips(original_cip)]
+            draw.draw_graph_set_graphlearn(candidates, contract=False)
 
     def _select_cips(self, cip):
         """
