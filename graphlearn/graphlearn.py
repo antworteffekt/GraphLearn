@@ -24,7 +24,6 @@ class GraphLearnSampler(object):
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
-
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
                  node_entity_check=lambda x, y: True,
@@ -664,6 +663,10 @@ class GraphLearnSampler(object):
         logger.log(5, 'accept_orig_cip: %r %r' % (score_ok, in_grammar))
 
         return in_grammar and score_ok
+
+
+class GraphLearnVectorSampler(GraphLearnSampler):
+    pass
 
 
 def _sample_multi(what):
