@@ -104,9 +104,9 @@ def graph_hash2(graph, hash_bitmask, node_name_label=None):
 
     # nodes that dont have edges
     if node_name_label is None:
-        # z = [graph.node[node_id]['hlabel'] for node_id in all_nodes - visited]
-        # z = [x for sublist in z for x in sublist]
-        z = [graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
+        z = [graph.node[node_id]['hlabel'] for node_id in all_nodes - visited]
+        z = [x for sublist in z for x in sublist]
+        # z = [graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
         # print z
         # print "nodes without edges: "
         # print [node_id for node_id in all_nodes - visited]
@@ -126,12 +126,12 @@ def calc_node_name2(interfacegraph, node, hash_bitmask, node_name_label):
     # l is a list of  hash(label,distance)
     # l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
     if node_name_label is None:
-        # l = []
+        l = []
         # # print "hlabel used: ", [interfacegraph.node[nid]['hlabel'] for nid, dis in d.items()]
         # # print "values of dis: ", [(nid, dis) for nid, dis in d.items()]
-        # for nid, dis in d.items():
-        #     l.extend(interfacegraph.node[nid]['hlabel'])
-        l = [interfacegraph.node[nid]['hlabel'][-1] + dis for nid, dis in d.items()]
+        for nid, dis in d.items():
+            l.extend(interfacegraph.node[nid]['hlabel'])
+        # ##### l = [interfacegraph.node[nid]['hlabel'][-1] + dis for nid, dis in d.items()]
     else:
         l = [interfacegraph.node[nid][node_name_label] + dis for nid, dis in d.items()]
     l.sort()
