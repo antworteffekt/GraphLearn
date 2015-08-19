@@ -5,6 +5,7 @@ from lsgvectorlabels import LSGVectorLabels
 from eden.graph import Vectorizer
 # from eden.util import serialize_dict
 import logging
+import postprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ class GraphLearnVectorSampler(GraphLearnSampler):
                  vectorizer=Vectorizer(complexity=3),
                  random_state=None,
                  estimator=estimatorwrapper.EstimatorWrapper(),
+                 postprocessor=postprocessing.PostProcessor(),
                  radius_list=[0, 1],
                  thickness_list=[1, 2],
                  node_entity_check=lambda x, y: True,
@@ -26,7 +28,7 @@ class GraphLearnVectorSampler(GraphLearnSampler):
 
         GraphLearnSampler.__init__(
             self, nbit, complexity, vectorizer, random_state, estimator,
-            radius_list, thickness_list, node_entity_check, grammar)
+            postprocessor, radius_list, thickness_list, node_entity_check, grammar)
 
         if grammar is None:
             self.lsgg = \
