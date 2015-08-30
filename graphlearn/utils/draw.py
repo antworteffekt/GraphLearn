@@ -1,12 +1,12 @@
 import pylab as plt
-from eden.util.display import draw_graph, draw_graph_set
+from eden.util.display import draw_graph_set
 import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
 from collections import defaultdict
 from graphlearn.utils import calc_stats_from_grammar
 import logging
-
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,25 @@ def graph_clean(graph):
 
 
 def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
+    fig = plt.figure(figsize=size)
+    ax = fig.add_subplot(111)
+    plt.grid()
+    ax = plt.subplot(111)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    data1_x = [3 * x - 1 for x in range(len(data1))]
+    ax.bar(data1_x, data1, width=1.5, color='r')
+    if data2 is not None:
+        data2_x = [3 * x - 2 for x in range(len(data2))]
+        ax.bar(data2_x, data2, width=1.5, color='b')
+    if log_scale:
+        plt.yscale('log')
+    plt.xlim(-1, len(data1) + 1)
+    plt.ylim(0.1)
+    plt.show()
+
+
+def plot_charts2(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_scale=True):
     plt.figure(figsize=size)
     plt.grid()
     plt.xlabel(xlabel)
@@ -69,7 +88,7 @@ def plot_charts(data1, data2=None, xlabel=None, ylabel=None, size=(10, 4), log_s
 
 def draw_grammar_stats(grammar, size=(10, 4)):
     c, i, cc, ii = calc_stats_from_grammar(grammar)
-    print "how often do we see interfacehashes"
+    print "how often do we see interface hashes"
     a = [(i[k], ii[k]) for k in i.keys()]
     a.sort()
     a0 = [e[0] for e in a]
@@ -77,7 +96,7 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     print '# productions: %d' % sum(a0)
 
     print 'x = # interfaces (total: %d)' % len(i)
-    print 'y=numberofcores(ihash), y=sumOfCoreCounts(ihash)'
+    print 'y=number of cores(ihash), y=sum Of Core Counts(ihash)'
     plot_charts(a0, a1, xlabel='# interfaces', ylabel='counts', size=size)
 
     print 'how often was this corehash seen?'
@@ -86,7 +105,7 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     a0 = [e[0] for e in a]
     a1 = [e[1] for e in a]
     print 'x = # cores (total: %d)' % len(c)
-    print 'y = inYinterfaces(chash), y= sumOfCountOverAllInterfaces(chash)'
+    print 'y = in Y interfaces(chash), y= sum Of Count Over All Interfaces(chash)'
     plot_charts(a0, a1, xlabel='# cores', ylabel='counts', size=size)
 
     print 'histogram'
@@ -129,10 +148,10 @@ def draw_grammar_stats(grammar, size=(10, 4)):
     plot_charts(dp, size=size)
 
 
-def draw_center(graph, root_node, radius):
+def draw_center(graph, root_node, radius, **args):
     dist = nx.single_source_shortest_path_length(graph, root_node, radius)
     graph.node[root_node]['color'] = 0.5
-    draw_graph(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color')
+    graphlearn_draw(nx.Graph(graph.subgraph(dist)), edge_label=None, vertex_color='color', **args)
 
 
 def set_ids(graph):
@@ -140,48 +159,82 @@ def set_ids(graph):
         d['id'] = str(n)
 
 
-def display(graph,
-            size=6,
-            font_size=15,
-            node_size=200,
-            node_border=False,
-            show_direction=False,
-            edge_color=None,
-            contract=False,
-            vertex_color='color',
-            vertex_label='label',
-            edge_label=None,
-            **args):
+def graphlearn_draw(graphs,
+                    size=6,
+                    font_size=15,
+                    node_size=200,
+                    node_border=False,
+                    show_direction=False,
+                    edge_color=None,
+                    contract=False,
+                    vertex_color=None,
+                    vertex_label='label',
+                    edge_label=None,
+                    edge_alpha=.5,
+                    **args):
 
+    if isinstance(graphs, nx.Graph):
+        graphs = [graphs]
+
+    graphs = copy.deepcopy(graphs)
+
+    for graph in graphs:
+
+        if show_direction:
+            contract = False
+
+        if vertex_color is None:
+            set_colors(graph)
+
+        if show_direction:
+            for n, d in graph.nodes(data=True):
+                if 'edge' in d:
+                    ne = graph.neighbors(n)
+                    for e in ne:
+                        graph[n][e]['color'] = 1
+
+        if vertex_label == 'id':
+            set_ids(graph)
+
+    if vertex_color is None:
+        vertex_color = 'col'
     if show_direction:
-        contract = False
+        edge_color = 'color'
+        edge_alpha = 1.0
+
     if contract:
-        graph = contract_edges(graph)
-    graph2 = graph.copy()
-    set_colors(graph2)
-
-    if show_direction:
-        for n, d in graph2.nodes(data=True):
-            if 'edge' in d:
-                ne = graph2.neighnors(n)
-                for e in ne:
-                    graph2[n][e]['color'] = 'red'
-    if vertex_label == 'id':
-        set_ids(graph2)
-
-    draw_graph(graph2,
-               size=size,
-               node_size=node_size,
-               node_border=node_border,
-               font_size=font_size,
-               edge_color=edge_color,
-               vertex_color=vertex_color,
-               vertex_label=vertex_label,
-               edge_label=edge_label,
-               **args)
+        tmp=[]
+        for graph in graphs:
+            tmp.append(  contract_edges(graph) )
+        graphs=tmp
 
 
-def cip_to_graph(cips=[], graphs=[]):
+    draw_graph_set(graphs,
+                   size=size,
+                   node_size=node_size,
+                   node_border=node_border,
+                   font_size=font_size,
+                   edge_color=edge_color,
+                   vertex_color=vertex_color,
+                   vertex_label=vertex_label,
+                   edge_label=edge_label,
+                   edge_alpha=edge_alpha,
+                   **args)
+
+
+def set_colors(g, key='col'):
+    for n, d in g.nodes(data=True):
+        if 'root' in d:
+            d[key] = 1
+        elif 'core' in d:
+            d[key] = 0.65
+        elif 'interface' in d:
+            d[key] = 0.45
+        else:
+            d[key] = 0
+
+
+def cip_to_drawable_graph(cips=[], graphs=[]):
     regraphs = []
     if not graphs:
         for cip in cips:
@@ -210,70 +263,61 @@ def cip_to_graph(cips=[], graphs=[]):
     return regraphs
 
 
-def draw_grammar(grammar, n_productions=None, n_graphs_per_line=5, size=4, **args):
+def draw_grammar(grammar,
+                 n_productions=None,
+                 n_graphs_per_line=5,
+                 n_graphs_per_production=10,
+                 size=4,
+                 **args):
+
     if n_productions is None:
         n_productions = len(grammar)
 
     if len(grammar) < n_productions:
         n_productions = len(grammar)
 
+    most_prolific_productions = sorted(
+        [(len(grammar[interface]), interface) for interface in grammar],
+        reverse=True)
+
     for i in range(n_productions):
-        interface = grammar.keys()[i]
+        interface = most_prolific_productions[i][1]
+        # interface = grammar.keys()[i]
         core_cid_dict = grammar[interface]
 
         cips = [core_cid_dict[chash] for chash in core_cid_dict.keys()]
 
         for cip in cips:
             cip.graph.graph['frequency'] = ' frequency:%s' % cip.count
-        graphs = [cip.graph for cip in cips]
 
+        most_frequent_cips = sorted([(cip.count, cip) for cip in cips], reverse=True)
+        graphs = [cip.graph for count, cip in most_frequent_cips]
+
+        graphs = graphs[:n_graphs_per_production]
         # dists = [core_cid_dict[chash].distance_dict for i, chash in enumerate(core_cid_dict.keys()) \
         # if i < 5]
-        print 'interface: ' + str(interface)
-        freq = lambda graph: graph.graph['frequency']
-        draw_graph_set_graphlearn(graphs,
-                                  n_graphs_per_line=n_graphs_per_line,
-                                  size=size,
-                                  headlinehook=freq,
-                                  **args)
+        print('interface id: %s [%d options]' % (interface, len(grammar[interface])))
+        freq = lambda graph: graph.graph.get('frequency', 'no freqency data')
+
+        # uebersampler gets to do this because he is the uebersampler
+        if 'abstract_view' in cips[0].__dict__:
+            graphs.append(cips[0].abstract_view)
+
+        graphlearn_draw(graphs,
+                        n_graphs_per_line=n_graphs_per_line,
+                        size=size,
+                        headlinehook=freq,
+                        **args)
 
 
 def get_score_of_graph(graph):
     return "%s%s" % (' score: ', str(graph.graph.get('score', '?')))
 
 
-def set_colors(g, key='col'):
-    for n, d in g.nodes(data=True):
-        if 'root' in d:
-            d[key] = 1
-        elif 'core' in d:
-            d[key] = 0.65
-        elif 'interface' in d:
-            d[key] = 0.45
-        else:
-            d[key] = 0
-
-
 def remove_colors(g, key='col'):
     for n, d in g.nodes(data=True):
         d[key] = 'white'
 
-
-def draw_graph_set_graphlearn(graphs, n_graphs_per_line=5, size=4, contract=True, vertex_color=None, **args):
-    graphs = list(graphs)
-
-    if contract:
-        graphs = [contract_edges(g) for g in graphs]
-
-    if vertex_color is None:
-        for g in graphs:
-            set_colors(g)
-        vertex_color = 'col'
-
-    # for e in graphs:
-    #    e.graph['info']= get_score_of_graph(e)
-
-    draw_graph_set(graphs, n_graphs_per_line=n_graphs_per_line, size=size, vertex_color=vertex_color, **args)
 
 
 def contract_edges(original_graph):
@@ -283,7 +327,7 @@ def contract_edges(original_graph):
         that have no partner, eden gives error in this case.
         i still want to see them :)
     """
-    # start from a copy of the original graph
+    # start from 0a copy of the original graph
     graph = nx.Graph(original_graph)
     # re-wire the endpoints of edge-vertices
     for n, d in original_graph.nodes_iter(data=True):
@@ -349,7 +393,7 @@ def draw_learning_curve(data_first=None,
     plt.plot((x_axis + delta) * scaling, mean_originals, 'ro', label='')
     plt.plot((x_axis_fit) * scaling, mean_originals_fit, 'r-', label='Original')
 
-    plt.box_axisplot(data_second, positions=(x_axis - delta) * scaling, notch=False)
+    plt.boxplot(data_second, positions=(x_axis - delta) * scaling, notch=False)
     plt.plot((x_axis - delta) * scaling, mean_originals_and_samples, 'go', label='')
     plt.plot((x_axis_fit) * scaling, mean_originals_and_samples_fit, 'g-', label='Original+sampled')
     plt.grid()
