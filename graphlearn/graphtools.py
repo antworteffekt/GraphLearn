@@ -75,6 +75,73 @@ def calc_node_name(interfacegraph, node, hash_bitmask, node_name_label):
     return l
 
 
+################################################################################
+def graph_hash2(graph, hash_bitmask, node_name_label=None):
+    """
+        so we calculate a hash of a graph
+    """
+    l = []
+    node_name_cache = {}
+    all_nodes = set(graph.nodes())
+    visited = set()
+    # all the edges
+    for (a, b) in graph.edges():
+        visited.add(a)
+        visited.add(b)
+
+        ha = node_name_cache.get(a, -1)
+        if ha == -1:
+            ha = calc_node_name2(graph, a, hash_bitmask, node_name_label)
+            node_name_cache[a] = ha
+        hb = node_name_cache.get(b, -1)
+        if hb == -1:
+            hb = calc_node_name2(graph, b, hash_bitmask, node_name_label)
+            node_name_cache[b] = hb
+        l.append((ha ^ hb) + (ha + hb))
+        # z=(ha ^ hb) + (ha + hb)
+        # l.append( fast_hash([ha,hb],hash_bitmask) +z )
+    l.sort()
+
+    # nodes that dont have edges
+    if node_name_label is None:
+        z = [graph.node[node_id]['hlabel'] for node_id in all_nodes - visited]
+        z = [x for sublist in z for x in sublist]
+        # z = [graph.node[node_id]['hlabel'][0] for node_id in all_nodes - visited]
+        # print z
+        # print "nodes without edges: "
+        # print [node_id for node_id in all_nodes - visited]
+    else:
+        z = [graph.node[node_id][node_name_label] for node_id in all_nodes - visited]
+    z.sort()
+    ihash = fast_hash(l + z, hash_bitmask)
+    return ihash
+
+
+def calc_node_name2(interfacegraph, node, hash_bitmask, node_name_label):
+    '''
+     part of generating the hash for a graph is calculating the hash of a node in the graph
+    '''
+    d = nx.single_source_shortest_path_length(interfacegraph, node, 20)
+    # d is now node:dist
+    # l is a list of  hash(label,distance)
+    # l=[   func([interfacegraph.node[nid]['intlabel'],dis])  for nid,dis in d.items()]
+    if node_name_label is None:
+        l = []
+        # # print "hlabel used: ", [interfacegraph.node[nid]['hlabel'] for nid, dis in d.items()]
+        # # print "values of dis: ", [(nid, dis) for nid, dis in d.items()]
+        for nid, dis in d.items():
+            l.extend(interfacegraph.node[nid]['hlabel'])
+        # ##### l = [interfacegraph.node[nid]['hlabel'][-1] + dis for nid, dis in d.items()]
+    else:
+        l = [interfacegraph.node[nid][node_name_label] + dis for nid, dis in d.items()]
+    l.sort()
+    # print "sorted l: ", l
+    l = fast_hash(l, hash_bitmask)
+    return l
+
+################################################################################
+
+
 def extract_core_and_interface(root_node=None,
                                graph=None,
                                radius_list=None,
