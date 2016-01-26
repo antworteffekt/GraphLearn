@@ -34,7 +34,7 @@ class directedSampler(GraphLearnSampler):
     def fit(self, G_pos,
             core_interface_pair_remove_threshold=3,
             interface_remove_threshold=2,
-            n_jobs=-1):
+            grammar_n_jobs=-1):
         """
           use input to fit the grammar and fit the estimator
         """
@@ -44,19 +44,19 @@ class directedSampler(GraphLearnSampler):
                                                                                 interface_remove_threshold,
                                                                                 nbit=self.nbit,
                                                                                 node_entity_check=self.node_entity_check)
-        self.local_substitutable_graph_grammar.fit(G_pos, n_jobs)
+        self.local_substitutable_graph_grammar.fit(G_pos, grammar_n_jobs)
 
     def get_nearest_neighbor_iterable(self, graphlist, start_graphs, start_is_subset=True):
 
         # vectorize all
         graphlist= list(graphlist)
         graphlist_ = copy.deepcopy(graphlist)
-        X = self.vectorizer.transform(graphlist_)
+        X = self.vectorizer.transform_single(graphlist_)
 
 
         start_graphs= list(start_graphs)
         graphlist_= copy.deepcopy(start_graphs)
-        Y = self.vectorizer.transform(graphlist_)
+        Y = self.vectorizer.transform_single(graphlist_)
         
         
         forest = LSHForest()
@@ -112,7 +112,7 @@ class directedSampler(GraphLearnSampler):
 
 
     def get_average_vector(self,graphiter):
-        all = self.vectorizer.transform(graphiter)
+        all = self.vectorizer.transform_single(graphiter)
         return all.mean(axis=0)
 
 
@@ -150,18 +150,18 @@ class directedSampler(GraphLearnSampler):
         #self.goal_size = len(self.vectorizer._edge_to_vertex_transform(self.goal_graph))
         return super(directedSampler, self)._sample(g_pair[0])
 
-    def _score(self, graph):
-        if '_score' not in graph.__dict__:
-            transformed_graph = self.vectorizer.transform_single(nx.Graph(graph))
+    def _score(self, graphmanager):
+        if '_score' not in graphmanager.__dict__:
+            transformed_graph = self.vectorizer.transform_single(nx.Graph(graphmanager))
             # slow so dont do it..
             # graph.score_nonlog = self.estimator.base_estimator.decision_function(transformed_graph)[0]
 
             #print self.goal.shape
             #print transformed_graph.shape
 
-            graph._score = transformed_graph.dot(self.goal.T)[0,0]
+            graphmanager._score = transformed_graph.dot(self.goal.T)[0,0]
             #graph._score=  (1 - distance(transformed_graph,self.goal))[0,0]
 
             # print graph._score
             # graph.score -= .007*abs( self.goal_size - len(graph) )
-        return graph._score
+        return graphmanager._score
